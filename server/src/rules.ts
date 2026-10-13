@@ -1,0 +1,3 @@
+export function addCalendarDays(date: Date, days: number): Date { const d = new Date(date); d.setDate(d.getDate() + days); return d; }
+export function overdueDays(due: Date, now = new Date()): number { const a = new Date(due.getFullYear(),due.getMonth(),due.getDate()).getTime(); const b = new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(); return Math.max(0,Math.floor((b-a)/86400000)); }
+export function outstanding(issued:number, returned:number):number { if(issued<0||returned<0||returned>issued) throw new Error('Return quantity exceeds outstanding quantity'); return issued-returned; }

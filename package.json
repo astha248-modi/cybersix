@@ -1,0 +1,13 @@
+{
+  "name":"inventorytrack-cybersix","private":true,"version":"1.0.0","workspaces":["server","client"],
+  "scripts":{
+    "dev":"concurrently -k -n API,WEB -c blue,green \"npm:dev --workspace server\" \"npm:dev --workspace client\"",
+    "build":"npm run build --workspace server && npm run build --workspace client",
+    "test":"npm test --workspace server",
+    "db:generate":"npm run db:generate --workspace server",
+    "db:migrate":"npm run db:migrate --workspace server",
+    "db:seed":"npm run db:seed --workspace server",
+    "db:studio":"npm run db:studio --workspace server"
+  },
+  "devDependencies":{"concurrently":"^9.1.2","typescript":"^5.7.3"}
+}

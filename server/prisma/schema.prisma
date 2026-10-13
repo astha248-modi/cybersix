@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum Role { COORDINATOR STUDENT }
+enum ItemType { QUANTITY ASSET }
+enum Condition { GOOD DAMAGED LOST MAINTENANCE RETIRED }
+enum IssueStatus { ACTIVE RETURNED }
+enum RenewalStatus { PENDING APPROVED REJECTED }
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  passwordHash String
+  role Role
+  active Boolean @default(true)
+  student Student?
+  auditLogs AuditLog[]
+  createdAt DateTime @default(now())
+}
+model Student {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields:[userId], references:[id])
+  name String
+  enrolmentNo String @unique
+  programme String
+  semester Int
+  contact String
+  active Boolean @default(true)
+  issues Issue[]
+  createdAt DateTime @default(now())
+}
+model Category {
+  id String @id @default(cuid())
+  name String @unique
+  items Item[]
+}
+model Location {
+  id String @id @default(cuid())
+  name String @unique
+  items Item[]
+  assets Asset[]
+}
+model Item {
+  id String @id @default(cuid())
+  code String @unique
+  name String
+  categoryId String
+  category Category @relation(fields:[categoryId], references:[id])
+  description String @default("")
+  makeModel String @default("")
+  type ItemType
+  totalQty Int @default(0)
+  unavailableQty Int @default(0)
+  locationId String
+  location Location @relation(fields:[locationId], references:[id])
+  assets Asset[]
+  issueLines IssueLine[]
+  movements StockMovement[]
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+}
+model Asset {
+  id String @id @default(cuid())
+  assetTag String @unique
+  serialNumber String? @unique
+  itemId String
+  item Item @relation(fields:[itemId], references:[id])
+  locationId String
+  location Location @relation(fields:[locationId], references:[id])
+  condition Condition @default(GOOD)
+  available Boolean @default(true)
+  issueLines IssueLine[]
+  createdAt DateTime @default(now())
+}
+model Issue {
+  id String @id @default(cuid())
+  studentId String
+  student Student @relation(fields:[studentId], references:[id])
+  issuedById String
+  issuedBy User @relation(fields:[issuedById], references:[id], name:"IssuedBy")
+  issueDate DateTime
+  purpose String @default("")
+  status IssueStatus @default(ACTIVE)
+  lines IssueLine[]
+  renewals RenewalRequest[]
+  returns ReturnTransaction[]
+  createdAt DateTime @default(now())
+  @@index([studentId, issueDate])
+}
+model IssueLine {
+  id String @id @default(cuid())
+  issueId String
+  issue Issue @relation(fields:[issueId], references:[id])
+  itemId String
+  item Item @relation(fields:[itemId], references:[id])
+  assetId String?
+  asset Asset? @relation(fields:[assetId], references:[id])
+  quantity Int
+  returnedQty Int @default(0)
+  dueDate DateTime
+  originalDueDate DateTime
+  returns ReturnLine[]
+  @@index([dueDate, returnedQty])
+}
+model ReturnTransaction {
+  id String @id @default(cuid())
+  issueId String
+  issue Issue @relation(fields:[issueId], references:[id])
+  receivedById String
+  receivedBy User @relation(fields:[receivedById], references:[id], name:"ReceivedBy")
+  returnedAt DateTime @default(now())
+  remarks String @default("")
+  lines ReturnLine[]
+}
+model ReturnLine {
+  id String @id @default(cuid())
+  returnId String
+  returnTxn ReturnTransaction @relation(fields:[returnId], references:[id])
+  issueLineId String
+  issueLine IssueLine @relation(fields:[issueLineId], references:[id])
+  quantity Int
+  condition Condition
+}
+model RenewalRequest {
+  id String @id @default(cuid())
+  issueId String
+  issue Issue @relation(fields:[issueId], references:[id])
+  issueLineId String
+  status RenewalStatus @default(PENDING)
+  requestedById String
+  decisionById String?
+  remarks String @default("")
+  requestedAt DateTime @default(now())
+  decidedAt DateTime?
+  @@index([status, requestedAt])
+}
+model StockMovement {
+  id String @id @default(cuid())
+  itemId String
+  item Item @relation(fields:[itemId], references:[id])
+  actorId String
+  type String
+  quantity Int
+  reason String
+  createdAt DateTime @default(now())
+}
+model AuditLog {
+  id String @id @default(cuid())
+  actorId String
+  actor User @relation(fields:[actorId], references:[id])
+  action String
+  entityType String
+  entityId String
+  details Json
+  createdAt DateTime @default(now())
+  @@index([entityType, entityId, createdAt])
+}

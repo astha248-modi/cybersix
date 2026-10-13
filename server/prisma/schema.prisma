@@ -5,11 +5,30 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-enum Role { COORDINATOR STUDENT }
-enum ItemType { QUANTITY ASSET }
-enum Condition { GOOD DAMAGED LOST MAINTENANCE RETIRED }
-enum IssueStatus { ACTIVE RETURNED }
-enum RenewalStatus { PENDING APPROVED REJECTED }
+enum Role {
+  COORDINATOR
+  STUDENT
+}
+enum ItemType {
+  QUANTITY
+  ASSET
+}
+enum Condition {
+  GOOD
+  DAMAGED
+  LOST
+  MAINTENANCE
+  RETIRED
+}
+enum IssueStatus {
+  ACTIVE
+  RETURNED
+}
+enum RenewalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
 model User {
   id String @id @default(cuid())
   email String @unique
@@ -18,12 +37,14 @@ model User {
   active Boolean @default(true)
   student Student?
   auditLogs AuditLog[]
+  issuedIssues Issue[] @relation("IssuedBy")
+  receivedReturns ReturnTransaction[] @relation("ReceivedBy")
   createdAt DateTime @default(now())
 }
 model Student {
   id String @id @default(cuid())
   userId String @unique
-  user User @relation(fields:[userId], references:[id])
+  user User @relation(fields: [userId], references: [id])
   name String
   enrolmentNo String @unique
   programme String
@@ -49,14 +70,14 @@ model Item {
   code String @unique
   name String
   categoryId String
-  category Category @relation(fields:[categoryId], references:[id])
+  category Category @relation(fields: [categoryId], references: [id])
   description String @default("")
   makeModel String @default("")
   type ItemType
   totalQty Int @default(0)
   unavailableQty Int @default(0)
   locationId String
-  location Location @relation(fields:[locationId], references:[id])
+  location Location @relation(fields: [locationId], references: [id])
   assets Asset[]
   issueLines IssueLine[]
   movements StockMovement[]
@@ -68,9 +89,9 @@ model Asset {
   assetTag String @unique
   serialNumber String? @unique
   itemId String
-  item Item @relation(fields:[itemId], references:[id])
+  item Item @relation(fields: [itemId], references: [id])
   locationId String
-  location Location @relation(fields:[locationId], references:[id])
+  location Location @relation(fields: [locationId], references: [id])
   condition Condition @default(GOOD)
   available Boolean @default(true)
   issueLines IssueLine[]
@@ -79,9 +100,9 @@ model Asset {
 model Issue {
   id String @id @default(cuid())
   studentId String
-  student Student @relation(fields:[studentId], references:[id])
+  student Student @relation(fields: [studentId], references: [id])
   issuedById String
-  issuedBy User @relation(fields:[issuedById], references:[id], name:"IssuedBy")
+  issuedBy User @relation("IssuedBy", fields: [issuedById], references: [id])
   issueDate DateTime
   purpose String @default("")
   status IssueStatus @default(ACTIVE)
@@ -94,11 +115,11 @@ model Issue {
 model IssueLine {
   id String @id @default(cuid())
   issueId String
-  issue Issue @relation(fields:[issueId], references:[id])
+  issue Issue @relation(fields: [issueId], references: [id])
   itemId String
-  item Item @relation(fields:[itemId], references:[id])
+  item Item @relation(fields: [itemId], references: [id])
   assetId String?
-  asset Asset? @relation(fields:[assetId], references:[id])
+  asset Asset? @relation(fields: [assetId], references: [id])
   quantity Int
   returnedQty Int @default(0)
   dueDate DateTime
@@ -109,9 +130,9 @@ model IssueLine {
 model ReturnTransaction {
   id String @id @default(cuid())
   issueId String
-  issue Issue @relation(fields:[issueId], references:[id])
+  issue Issue @relation(fields: [issueId], references: [id])
   receivedById String
-  receivedBy User @relation(fields:[receivedById], references:[id], name:"ReceivedBy")
+  receivedBy User @relation("ReceivedBy", fields: [receivedById], references: [id])
   returnedAt DateTime @default(now())
   remarks String @default("")
   lines ReturnLine[]
@@ -119,16 +140,16 @@ model ReturnTransaction {
 model ReturnLine {
   id String @id @default(cuid())
   returnId String
-  returnTxn ReturnTransaction @relation(fields:[returnId], references:[id])
+  returnTxn ReturnTransaction @relation(fields: [returnId], references: [id])
   issueLineId String
-  issueLine IssueLine @relation(fields:[issueLineId], references:[id])
+  issueLine IssueLine @relation(fields: [issueLineId], references: [id])
   quantity Int
   condition Condition
 }
 model RenewalRequest {
   id String @id @default(cuid())
   issueId String
-  issue Issue @relation(fields:[issueId], references:[id])
+  issue Issue @relation(fields: [issueId], references: [id])
   issueLineId String
   status RenewalStatus @default(PENDING)
   requestedById String
@@ -141,7 +162,7 @@ model RenewalRequest {
 model StockMovement {
   id String @id @default(cuid())
   itemId String
-  item Item @relation(fields:[itemId], references:[id])
+  item Item @relation(fields: [itemId], references: [id])
   actorId String
   type String
   quantity Int
@@ -151,7 +172,7 @@ model StockMovement {
 model AuditLog {
   id String @id @default(cuid())
   actorId String
-  actor User @relation(fields:[actorId], references:[id])
+  actor User @relation(fields: [actorId], references: [id])
   action String
   entityType String
   entityId String
